@@ -5,10 +5,6 @@ Repositório destinado para o armazenamento do código do Trabalho sobre o Méto
 
 Compreender a lógica do Método de Newton-Raphson para encontrar zeros de funções e implementar computacionalmente a fórmula associada.
 
-## Divisão do Trabalho
-
-O trabalho foi estruturado em 3 partes.
-
 ### 1. Programação do Cálculo da Derivada
 
 Implementar computacionalmente o cálculo da derivada de uma função utilizando uma das definições formais por limite:
