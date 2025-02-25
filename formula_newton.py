@@ -1,5 +1,5 @@
 import sympy as sp
-from time import sleep
+import streamlit as st
 
 
 def validar_numero(valor):
@@ -9,148 +9,109 @@ def validar_numero(valor):
     except ValueError:
         return False
 
-
 def formula_newton(f, f_deriv, x0, tol=1e-6, max_iter=200):
     contar_inter = 0
+    iteracoes = []
     for _ in range(max_iter):
         contar_inter += 1
-        print(f'Iteração {contar_inter}: x = {x0:.5f}', flush=True)
-        sleep(0.02)
         fx_n = f(x0)
         fpx_n = f_deriv(x0)
+        iteracoes.append(f"Iteração {contar_inter}: x = {x0:.5f}")
         if abs(fx_n) < tol:
-            return x0, contar_inter
+            return x0, contar_inter, iteracoes
         if fpx_n == 0:
             raise ValueError('Derivada zero. [ERRO]')
         x0 = x0 - fx_n / fpx_n
-    raise ValueError('máximo de interações atingido')
-
+    raise ValueError('Máximo de iterações atingido')
 
 def resultado(chute):
-    raizes_encontradas = list()
-    print(f'A derivada dessa função é {derivada}')
-    r_p, iter_p = formula_newton(funcao, funcao_deriv, x0=chute)
-    r_n, iter_n = formula_newton(funcao, funcao_deriv, x0=-chute)
+    raizes_encontradas = []
+    iteracoes_totais = []
+    r_p, iter_p, iteracoes_p = formula_newton(funcao, funcao_deriv, x0=chute)
+    r_n, iter_n, iteracoes_n = formula_newton(funcao, funcao_deriv, x0=-chute)
+    iteracoes_totais.extend(iteracoes_p + iteracoes_n)
     raizp = sp.sympify(r_p)
     raizn = sp.sympify(r_n)
     if f'{raizp:.5f}' == f'{raizn:.5f}':
-        print(f'A raiz encontrada foi {raizp:.5f}  (Encontrada em {iter_p} iterações)')
         raizes_encontradas.append(raizp)
     else:
-        print(f'As raizes encontradas foram: {raizp:.5f} ({iter_p} iterações) e {raizn:.5f} ({iter_n} iterações)')
-        if raizn not in raizes_encontradas:
-            raizes_encontradas.append(round(raizn, 5))
-        if raizp not in raizes_encontradas:
-            raizes_encontradas.append(round(raizp, 5))
-        return raizes_encontradas
+        raizes_encontradas.extend([round(raizn, 5), round(raizp, 5)])
+    return raizes_encontradas, iteracoes_totais
 
+# Interface principal
+def main():
+    st.set_page_config(page_title="Método de Newton-Raphson", layout="centered")
 
-def menu():
-    while True:
-        print('------------------------------')
-        print('''MENU\n[1] Digitar uma nova função\n[2] Continuar com a mesma função\n[3] Resultados\n[4] Sair''')
-        print('------------------------------')
-        resposta = str(input(': '))
-        if resposta == '1':
-            print('ok')
-            resultados_geral.clear()
-            break
-        elif resposta == '2':
-            programa()
-        elif resposta == '3':
-            todas_raizes(resultados_geral)
-        elif resposta == '4':
-            resultados_geral.clear()
-            quit()
-        else:
-            print('Digite uma opção válida...')
-            sleep(0.75)
+    if "formula_digitada" not in st.session_state:
+        st.session_state["formula_digitada"] = ""
 
+    # Estilização CSS
+    st.markdown(
+        """
+        <style>
+            body { background-color: #0D1B2A; color: #E0E1DD; }
+            .stTextInput>div>div>input { background-color: #1B263B; color: #E0E1DD; border-radius: 10px; }
+            .stButton>button { 
+                background: linear-gradient(to right, #5F0A87, #A4508B);
+                color: white; 
+                border-radius: 10px;
+                width: 100%; 
+                font-size: 16px;
+                font-weight: bold;
+            }
+            .stButton>button:hover { background: linear-gradient(to right, #A4508B, #5F0A87); }
+        </style>
+        """, unsafe_allow_html=True
+    )
 
-def dados_lista(lista):
-    if lista is None:
-        print("Erro: a lista recebida é None.")
-        return  
+    st.title('🔎 Encontrar Raízes de Funções')
 
-    if not lista or not isinstance(lista, list) or not isinstance(lista[0], list) or len(lista[0]) < 2:
-        return  
+    # Layout das colunas para inputs e botões
+    col1, col2 = st.columns([3, 2])
 
-    if lista[0][0] not in resultados_geral:
-        resultados_geral.append(lista[0][0])
-    if lista[0][1] not in resultados_geral:
-        resultados_geral.append(lista[0][1])
+    with col1:
+        formula_digitada = st.text_input('Digite uma função:', value=st.session_state["formula_digitada"])
+        chute = st.text_input('Digite um chute inicial:')
 
-    for raiz, _ in lista: 
-        if raiz not in resultados_geral:
-         resultados_geral.append(raiz)
+    with col2:
+        st.write("#### 📌 Exemplos Rápidos")
+        if st.button('Teste Inicial:  f(x) = x² - 4'):
+            st.session_state["formula_digitada"] = 'x**2 - 4'
+            st.rerun()
+        if st.button('Desafio 1:  f(x) = x² - 2x'):
+            st.session_state["formula_digitada"] = 'x**2 - 2*x'
+            st.rerun()
+        if st.button('Desafio 2:  f(x) = tan(x) - 1/x'):
+            st.session_state["formula_digitada"] = 'tan(x) - 1/x'
+            st.rerun()
 
-
-def todas_raizes(lista):
-    cont = 0
-    while True:
-        print('------------------------------')
-        print('[1] Raízes positivas\n[2] Raízes negativas\n[3] Todas as raízes')
-        print('------------------------------')
-        r = str(input(': ')).strip()[0]
-        if r == '1':
-            print('---------------------')
-            for c in range(0, len(lista)):
-                if lista[c] > 0:
-                    cont += 1
-                    print(f'{cont + 1} _ {lista[c]:.5f}')
-            print('---------------------')
-            sleep(2)
-            break
-        elif r == '2':
-            print('---------------------')
-            for c in range(0, len(lista)):
-                if lista[c] < 0:
-                    cont += 1
-                    print(f'{cont + 1} _ {lista[c]:.5f}')
-            print('---------------------')
-            sleep(2)
-            break
-        elif r == '3':
-            print('---------------------')
-            for c in range(0, len(lista)):
-                print(f'{c + 1} _ {lista[c]:.5f}')
-            print('---------------------')
-            sleep(2)
-            break
-        else:
-            print('Digite uma resposta válida....')
-            sleep(0.5)
-
-
-def programa():
-    global derivada
-    global funcao
-    global funcao_deriv
-    while True:
-        r_temp = list()
+    if formula_digitada:
+        x = sp.symbols('x')
         formula_tratada = sp.sympify(formula_digitada)
         derivada = sp.diff(formula_tratada)
+        global funcao, funcao_deriv
         funcao = sp.lambdify(x, formula_tratada)
         funcao_deriv = sp.lambdify(x, derivada)
-        print('[M] para ir ao menu')
-        while True:
-            chute = str(input('Digite um chute: ')).upper().strip()
-            if chute == 'M':
-                break
-            elif validar_numero(chute):
-                break
+
+        if st.button('💡 Calcular Raízes'):
+            if validar_numero(chute):
+                resultados, iteracoes = resultado(float(chute))
+
+                # Criamos duas colunas para exibir os resultados lado a lado
+                col_raizes, col_iteracoes = st.columns([1, 2])
+
+                with col_raizes:
+                    st.subheader("✅ Raízes Encontradas:")
+                    for raiz in resultados:
+                        st.write(f"📌 {raiz}")
+
+                with col_iteracoes:
+                    st.subheader("🔄 Iterações:")
+                    for iteracao in iteracoes:
+                        st.write(iteracao)
+
             else:
-                print('digite um valor válido')
-        if chute == 'M':
-            menu()
-            break
-        r_temp.append(resultado(float(chute)))
-        dados_lista(r_temp)
+                st.warning('⚠️ Digite um valor numérico válido para o chute inicial.')
 
-
-resultados_geral = list()
-while True:
-    x = sp.symbols('x')
-    formula_digitada = str(input('Digite uma função: '))
-    programa()
-    
+if __name__ == '__main__':
+    main()
