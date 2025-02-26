@@ -34,5 +34,5 @@ Garantir critérios de parada adequados (ex.: tolerância de erro, número máxi
 Encontrar as raízes de $f(x) = x^2 - 4$ para validar o método.
 
 #### Desafios:
-- **Problema 1:** Resolver $x^2 = 2x$ (encontrar todas as soluções reais).
+- **Problema 1:** Resolver $x^2 = 2^x$ (encontrar todas as soluções reais).
 - **Problema 2:** Encontrar as 3 primeiras raízes positivas de $tan(x) = \frac{1}{x}$.
