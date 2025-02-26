@@ -1,7 +1,8 @@
 import sympy as sp
-import streamlit as st
+from time import sleep
 
 
+# Validar que uma string é um número
 def validar_numero(valor):
     try:
         float(valor)
@@ -9,109 +10,216 @@ def validar_numero(valor):
     except ValueError:
         return False
 
+# validar se a função é uma função
+def validar_funcao(funcao):
+    try:
+        sp.sympify(funcao)
+        return True
+    except ValueError:
+        return False
+
+
+# Fórmula de newton - raphson
 def formula_newton(f, f_deriv, x0, tol=1e-6, max_iter=200):
-    contar_inter = 0
-    iteracoes = []
+    # interações
+    global cont_iter
+    cont_iter = 0
+    # repete a fórmula até chegar no limite de interações ou alcançar a tolerancia
     for _ in range(max_iter):
-        contar_inter += 1
+        # escreve as interações no console em tempo real
+        print(f'{_ + 1} _ {x0:.5f}', flush=True)
+        # Contador de interações
+        cont_iter += 1
+        sleep(0.02)
         fx_n = f(x0)
         fpx_n = f_deriv(x0)
-        iteracoes.append(f"Iteração {contar_inter}: x = {x0:.5f}")
+        # definir a tolerância 
         if abs(fx_n) < tol:
-            return x0, contar_inter, iteracoes
+            return x0
+        # caso a derivada seja zero pare tudo com um erro
         if fpx_n == 0:
-            raise ValueError('Derivada zero. [ERRO]')
+            print('[ERRO] Derivada não pode ser igual a zero')
+            sleep(2)
+            inicio()
+        # fórmula
         x0 = x0 - fx_n / fpx_n
-    raise ValueError('Máximo de iterações atingido')
+    print('[ERRO] Máximo de interações atingido')
+    sleep(0.5)
+    menu()
 
+# adicionar e salvar os resultados em uma lista
 def resultado(chute):
-    raizes_encontradas = []
-    iteracoes_totais = []
-    r_p, iter_p, iteracoes_p = formula_newton(funcao, funcao_deriv, x0=chute)
-    r_n, iter_n, iteracoes_n = formula_newton(funcao, funcao_deriv, x0=-chute)
-    iteracoes_totais.extend(iteracoes_p + iteracoes_n)
+    raizes_encontradas = list()
+    print(f'A derivada dessa função é {derivada}')
+    print('positivo:')
+    print('---------------------')
+    r_p = formula_newton(funcao, funcao_deriv, x0=chute)
+    print('---------------------')
+    iter_p = cont_iter
+    print('negativo: ')
+    print('---------------------')
+    r_n = formula_newton(funcao, funcao_deriv, x0=-chute)
+    print('---------------------')
+    iter_n = cont_iter
+    # transformar as raízes em números
     raizp = sp.sympify(r_p)
     raizn = sp.sympify(r_n)
+    # caso as raizes positivas e negativas sejam iguais, apenas uma raíz é encontrada
     if f'{raizp:.5f}' == f'{raizn:.5f}':
-        raizes_encontradas.append(raizp)
+        print(f'A raiz encontrada foi {raizp:.5f}')
+        raizes_encontradas.append(round(raizp, 5))
+        print(f'{cont_iter} iterações')
+    # caso contrário as duas raízes são salvas
     else:
-        raizes_encontradas.extend([round(raizn, 5), round(raizp, 5)])
-    return raizes_encontradas, iteracoes_totais
+        print(f'As raizes encontradas foram: {raizp:.5f} e {raizn:.5f}')
+        if raizn not in raizes_encontradas:
+            raizes_encontradas.append(round(raizn, 5))
+        if raizp not in raizes_encontradas:
+            raizes_encontradas.append(round(raizp, 5))
+        # print da contagem de raízes
+        print(f'{iter_p} iterações positivas, {iter_n} iterações negativas')
+    return raizes_encontradas
 
-# Interface principal
-def main():
-    st.set_page_config(page_title="Método de Newton-Raphson", layout="centered")
+# menu de interações
+def menu():
+    while True:
+        # Opções e input
+        print('------------------------------')
+        print('''MENU\n[1] Digitar uma nova função\n[2] Continuar com a mesma função\n[3] Resultados\n[4] Sair''')
+        print('------------------------------')
+        resposta = str(input(': '))
+        if resposta == '1':
+            resultados_geral.clear()
+            inicio()
+        elif resposta == '2':
+            programa()
+        elif resposta == '3': 
+            todas_raizes(resultados_geral)
+        elif resposta == '4':
+            resultados_geral.clear()
+            quit()
+        else:
+            print('Digite uma opção válida...')
+            sleep(0.75)
 
-    if "formula_digitada" not in st.session_state:
-        st.session_state["formula_digitada"] = ""
+# vê se um resultado não está na lista pra coloca-lo pra não haver repetições
+def dados_lista(lista):
+    if len(lista[0]) < 2:
+        if lista[0][0] not in resultados_geral:
+            resultados_geral.append(lista[0][0])
+    else:
+        if lista[0][0] not in resultados_geral:
+            resultados_geral.append(lista[0][0])
+        if lista[0][1] not in resultados_geral:
+            resultados_geral.append(lista[0][1])
 
-    # Estilização CSS
-    st.markdown(
-        """
-        <style>
-            body { background-color: #0D1B2A; color: #E0E1DD; }
-            .stTextInput>div>div>input { background-color: #1B263B; color: #E0E1DD; border-radius: 10px; }
-            .stButton>button { 
-                background: linear-gradient(to right, #5F0A87, #A4508B);
-                color: white; 
-                border-radius: 10px;
-                width: 100%; 
-                font-size: 16px;
-                font-weight: bold;
-            }
-            .stButton>button:hover { background: linear-gradient(to right, #A4508B, #5F0A87); }
-        </style>
-        """, unsafe_allow_html=True
-    )
 
-    st.title('🔎 Encontrar Raízes de Funções')
 
-    # Layout das colunas para inputs e botões
-    col1, col2 = st.columns([3, 2])
+# menu para as opções de raízes e ver os resultados obtidos
+def todas_raizes(lista):
+    # contador na lista
+    cont = 0
+    # menu
+    while True:
+        # print do menu e input
+        print('------------------------------')
+        print('[1] Raízes positivas\n[2] Raízes negativas\n[3] Todas as raízes\n[4] Voltar')
+        print('------------------------------')
+        r = str(input(': ')).strip()[0]
+        # apenas raízes positivas
+        if r == '1':
+            cont = 0
+            print('---------------------')
+            # caso não haja nenhuma raiz na lista, nenhuma raíz foi encontrada
+            if len(lista) == 0:
+                print('Nenhuma raiz foi encontrada')
+            else:
+                # print da lista com apenas raízes positivas
+                for c in range(0, len(lista)):
+                    if lista[c] > 0:
+                        cont += 1
+                        print(f'{cont} _ {lista[c]:.5f}')
+            print('---------------------')
+            sleep(2)
+        # apenas raízes negativas
+        elif r == '2':
+            cont = 0
+            print('---------------------')
+            if len(lista) == 0:
+                print('Nenhuma raiz foi encontrada')
+            else:
+                # print da lista de raízes negativas 
+                for c in range(0, len(lista)):
+                    if lista[c] < 0:
+                        cont += 1
+                        print(f'{cont} _ {lista[c]:.5f}')
+            print('---------------------')
+            sleep(2)
+        elif r == '3':
+            cont = 0
+            print('---------------------')
+            if len(lista) == 0:
+                print('Nenhuma raiz foi encontrada')
+            else:
+                for c in range(0, len(lista)):
+                    print(f'{c + 1} _ {lista[c]:.5f}')
+            print('---------------------')
+            sleep(2)
+        elif r == '4':
+            break
+        else:
+            print('Digite uma resposta válida....')
+            sleep(0.5)
 
-    with col1:
-        formula_digitada = st.text_input('Digite uma função:', value=st.session_state["formula_digitada"])
-        chute = st.text_input('Digite um chute inicial:')
 
-    with col2:
-        st.write("#### 📌 Exemplos Rápidos")
-        if st.button('Teste Inicial:  f(x) = x² - 4'):
-            st.session_state["formula_digitada"] = 'x**2 - 4'
-            st.rerun()
-        if st.button('Desafio 1:  f(x) = x² - 2x'):
-            st.session_state["formula_digitada"] = 'x**2 - 2*x'
-            st.rerun()
-        if st.button('Desafio 2:  f(x) = tan(x) - 1/x'):
-            st.session_state["formula_digitada"] = 'tan(x) - 1/x'
-            st.rerun()
-
-    if formula_digitada:
-        x = sp.symbols('x')
+# função do programa para poder a opção [continuar com a mesma função] funcione.
+def programa():
+    # global de algumas variáveis para tudo funcionar corretamente
+    global derivada
+    global funcao
+    global funcao_deriv
+    #chute = x0
+    while True:
+        r_temp = list()
+        # transformação da string função digitada para um número
         formula_tratada = sp.sympify(formula_digitada)
+        # derivada da função em uma função sympy
         derivada = sp.diff(formula_tratada)
-        global funcao, funcao_deriv
+        # indicar que o x é a variável da função
         funcao = sp.lambdify(x, formula_tratada)
         funcao_deriv = sp.lambdify(x, derivada)
-
-        if st.button('💡 Calcular Raízes'):
-            if validar_numero(chute):
-                resultados, iteracoes = resultado(float(chute))
-
-                # Criamos duas colunas para exibir os resultados lado a lado
-                col_raizes, col_iteracoes = st.columns([1, 2])
-
-                with col_raizes:
-                    st.subheader("✅ Raízes Encontradas:")
-                    for raiz in resultados:
-                        st.write(f"📌 {raiz}")
-
-                with col_iteracoes:
-                    st.subheader("🔄 Iterações:")
-                    for iteracao in iteracoes:
-                        st.write(iteracao)
-
+        print('[M] para ir ao menu')
+        # input que volta para ele mesmo caso não digite um valor válido
+        while True:
+            chute = str(input('Digite o x0: ')).upper().strip()
+            if chute == 'M':
+                break
+            elif validar_numero(chute):
+                break
             else:
-                st.warning('⚠️ Digite um valor numérico válido para o chute inicial.')
+                print('digite um valor válido')
+        if chute == 'M':
+            menu()
+        # adicionar os resultados na lista temporária
+        r_temp.append(resultado(float(chute)))
+        # enviar a lista temporária para a lista em que não possa haver repetições
+        dados_lista(r_temp)
 
-if __name__ == '__main__':
-    main()
+
+def inicio():
+    global x
+    global formula_digitada
+    global resultados_geral
+    resultados_geral = list()
+    while True:
+        # definir que 'x' é a variável da função
+        x = sp.symbols('x')
+        formula_digitada = str(input('Digite uma função: '))
+        if validar_funcao(formula_digitada):
+            programa()
+        else:
+            print('digite uma função valida')
+    
+
+# [main]
+inicio()
